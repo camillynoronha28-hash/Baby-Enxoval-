@@ -1,7 +1,7 @@
 // CONFIGURAÇÃO: use a URL do projeto e a chave PUBLICÁVEL do Supabase.
 // Nunca coloque aqui a chave secreta do projeto.
-const SUPABASE_URL = "https://COLOQUE-A-REFERENCIA-DO-PROJETO.supabase.co";
-const SUPABASE_ANON_KEY = "COLE-AQUI-SUA-CHAVE-PUBLICAVEL";
+const SUPABASE_URL = "https://lznssmovgpfncvaxgrgl.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_rhia7rXYUdgieZ4RROYp2w_pKsvIC9q";
 
 const configurado = !SUPABASE_URL.includes("COLOQUE") && !SUPABASE_ANON_KEY.includes("COLE-AQUI");
 const sb = configurado && window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
