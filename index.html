@@ -1,183 +1,201 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#faedf3">
-  <title>Meu Enxoval | Ágata Vitória</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7e8f1">
+  <title>Baby Enxoval</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="script.js"></script>
 </head>
 <body>
-
-  <header class="topo">
-    <div class="marca">
-      <span class="borboleta">🦋</span>
-      <div>
-        <h1>Meu Enxoval</h1>
-        <p>Preparando tudo com carinho</p>
-      </div>
-    </div>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Baby Enxoval início">
+      <span class="brand-mark">🦋</span>
+      <span><strong>Baby Enxoval</strong><small>Um começo organizado</small></span>
+    </a>
+    <button id="sairBtn" class="button button-light hidden" type="button">Sair</button>
   </header>
 
   <main class="container">
-
-    <section class="boas-vindas">
-      <p class="subtitulo">NOSSO CANTINHO ESPECIAL</p>
-      <h2>Enxoval da Ágata Vitória</h2>
-      <p>Organizando cada detalhe para a chegada da nossa princesa.</p>
+    <section id="avisoConfig" class="notice hidden">
+      <strong>Falta configurar a conexão.</strong>
+      <p>O endereço do projeto e a chave publicável ainda precisam ser colocados no arquivo <code>script.js</code>.</p>
     </section>
 
-    <nav class="menu">
-      <button class="menu-btn ativo" data-pagina="inicio">Início</button>
-      <button class="menu-btn" data-pagina="lista">Meu enxoval</button>
-      <button class="menu-btn" data-pagina="compras">Compras</button>
-    </nav>
-
-    <section id="pagina-inicio" class="pagina ativa">
-      <div class="cartao destaque">
-        <h3>Progresso do enxoval</h3>
-        <div class="progresso">
-          <div id="barra-progresso"></div>
-        </div>
-        <p id="texto-progresso">0% concluído</p>
+    <section id="authView" class="auth-layout">
+      <div class="welcome">
+        <span class="eyebrow">SEU PLANEJAMENTO, NO SEU TEMPO</span>
+        <h1>Prepare a chegada do bebê com mais tranquilidade.</h1>
+        <p>Organize compras, quantidades, kits e o que você já tem em um só lugar.</p>
+        <div class="welcome-art">🦋 <span>♡</span> 🧸</div>
       </div>
-
-      <div class="resumos">
-        <div class="cartao">
-          <span>Itens cadastrados</span>
-          <strong id="total-itens">0</strong>
+      <div class="panel auth-panel">
+        <div class="tabs">
+          <button class="tab active" id="entrarTab" type="button">Entrar</button>
+          <button class="tab" id="criarTab" type="button">Criar conta</button>
         </div>
-        <div class="cartao">
-          <span>Já tenho</span>
-          <strong id="total-tenho">0</strong>
-        </div>
-        <div class="cartao">
-          <span>Faltam</span>
-          <strong id="total-faltam">0</strong>
-        </div>
-      </div>
-
-      <div class="cartao">
-        <h3>Meu orçamento</h3>
-        <label for="orcamento">Quanto pretendo gastar (R$)</label>
-        <input type="number" id="orcamento" min="0" step="0.01" placeholder="Ex.: 1500">
-        <p id="resumo-orcamento">Informe seu orçamento.</p>
-      </div>
-
-      <div class="cartao">
-        <h3>Atalhos</h3>
-        <button class="botao-principal" id="atalho-adicionar">+ Adicionar item</button>
-        <button class="botao-secundario" data-ir="lista">Ver meu enxoval</button>
+        <form id="authForm">
+          <label for="email">E-mail</label>
+          <input id="email" type="email" autocomplete="email" required placeholder="voce@exemplo.com">
+          <label for="senha">Senha</label>
+          <input id="senha" type="password" autocomplete="current-password" minlength="6" required placeholder="Pelo menos 6 caracteres">
+          <button id="authSubmit" class="button button-primary full" type="submit">Entrar</button>
+          <p id="authFeedback" class="feedback" aria-live="polite"></p>
+        </form>
+        <p class="small muted">Cada pessoa terá sua própria conta e seus próprios dados.</p>
       </div>
     </section>
 
-    <section id="pagina-lista" class="pagina">
-      <div class="titulo-secao">
+    <section id="perfilView" class="panel narrow hidden">
+      <span class="eyebrow">PRIMEIRO ACESSO</span>
+      <h2>Vamos conhecer seu enxoval</h2>
+      <p class="muted">Você poderá alterar essas informações depois.</p>
+      <form id="perfilForm" class="form-grid">
+        <div class="field full">
+          <label for="nomeBebe">Nome do bebê</label>
+          <input id="nomeBebe" required maxlength="80" placeholder="Nome do bebê">
+        </div>
+        <div class="field">
+          <label for="sexoBebe">Sexo</label>
+          <select id="sexoBebe">
+            <option value="menina">Menina</option>
+            <option value="menino">Menino</option>
+            <option value="nao_informar">Prefiro não informar</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="dataParto">Data prevista do parto</label>
+          <input id="dataParto" type="date">
+        </div>
+        <div class="field">
+          <label for="regiao">Região</label>
+          <select id="regiao">
+            <option value="">Selecione</option>
+            <option>Norte</option><option>Nordeste</option><option>Centro-Oeste</option>
+            <option>Sudeste</option><option>Sul</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="estado">Estado (sigla)</label>
+          <input id="estado" maxlength="2" placeholder="CE">
+        </div>
+        <div class="field full">
+          <label for="cidade">Cidade (opcional)</label>
+          <input id="cidade" maxlength="80" placeholder="Sua cidade">
+        </div>
+        <div class="field full">
+          <label for="tipoEnxoval">Tipo de enxoval</label>
+          <select id="tipoEnxoval">
+            <option value="economico">Econômico</option>
+            <option value="basico" selected>Básico</option>
+            <option value="completo">Completo</option>
+            <option value="recomendado">Recomendado</option>
+          </select>
+        </div>
+        <div class="field full">
+          <button class="button button-primary full" type="submit">Salvar e continuar</button>
+          <p id="perfilFeedback" class="feedback" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
+
+    <section id="appView" class="hidden">
+      <div class="hero-card">
         <div>
-          <h2>Minha lista</h2>
-          <p>Marque o que você já tem e acompanhe o que falta.</p>
+          <span class="eyebrow">SEU CANTINHO DE ORGANIZAÇÃO</span>
+          <h1 id="tituloBebe">Meu bebê</h1>
+          <p id="subtituloBebe" class="muted"></p>
         </div>
-        <button class="botao-principal" id="adicionar-item">+ Adicionar</button>
+        <div class="butterfly">🦋</div>
       </div>
 
-      <input type="search" id="busca" placeholder="Pesquisar item...">
+      <nav class="main-nav" aria-label="Navegação principal">
+        <button class="nav-button active" data-section="resumoSection" type="button">Resumo</button>
+        <button class="nav-button" data-section="itensSection" type="button">Meu enxoval</button>
+        <button class="nav-button" data-section="kitsSection" type="button">Meus kits</button>
+        <button class="nav-button hidden" id="adminNav" data-section="adminSection" type="button">Administração</button>
+      </nav>
 
-      <div class="filtros">
-        <button class="filtro selecionado" data-filtro="todos">Todos</button>
-        <button class="filtro" data-filtro="pendentes">Faltam</button>
-        <button class="filtro" data-filtro="tenho">Já tenho</button>
-      </div>
+      <section id="resumoSection" class="content-section">
+        <div class="stats">
+          <article class="stat-card"><span>Itens cadastrados</span><strong id="totalItens">0</strong></article>
+          <article class="stat-card"><span>Já tenho</span><strong id="itensTenho">0</strong></article>
+          <article class="stat-card"><span>Ainda faltam</span><strong id="itensFaltam">0</strong></article>
+        </div>
+        <div class="panel">
+          <div class="section-heading"><div><span class="eyebrow">ACOMPANHAMENTO</span><h2>Progresso do enxoval</h2></div><strong id="progressoTexto">0%</strong></div>
+          <div class="progress-track"><div id="progressoBarra" class="progress-fill"></div></div>
+          <p class="muted small">Marque os itens que você já tem para acompanhar seu progresso.</p>
+        </div>
+        <div class="panel">
+          <div class="section-heading"><div><span class="eyebrow">COMECE POR AQUI</span><h2>Adicionar um item</h2></div></div>
+          <form id="novoItemForm" class="form-grid">
+            <div class="field"><label for="itemNome">Nome do item</label><input id="itemNome" required maxlength="100" placeholder="Ex.: body de manga curta"></div>
+            <div class="field"><label for="itemCategoria">Categoria</label>
+              <select id="itemCategoria">
+                <option>Roupinhas</option><option>Fraldas</option><option>Higiene</option><option>Banho</option>
+                <option>Quarto</option><option>Alimentação</option><option>Passeio</option><option>Maternidade</option>
+                <option>Acessórios</option><option>Mamãe</option><option>Outros</option>
+              </select>
+            </div>
+            <div class="field"><label for="itemQuantidade">Quantidade</label><input id="itemQuantidade" type="number" min="1" value="1"></div>
+            <div class="field"><label for="itemTamanho">Tamanho (opcional)</label><input id="itemTamanho" placeholder="RN, P, M..."></div>
+            <div class="field full"><label for="itemDetalhes">Detalhes (opcional)</label><input id="itemDetalhes" maxlength="200" placeholder="Cor, modelo ou observação"></div>
+            <div class="field full"><button class="button button-primary" type="submit">Adicionar ao meu enxoval</button><p id="itemFeedback" class="feedback"></p></div>
+          </form>
+        </div>
+      </section>
 
-      <div id="lista-itens"></div>
-      <p id="lista-vazia" class="mensagem-vazia">Nenhum item cadastrado ainda.</p>
+      <section id="itensSection" class="content-section hidden">
+        <div class="section-heading"><div><span class="eyebrow">SUA LISTA</span><h2>Meu enxoval</h2></div>
+          <select id="filtroCategoria" aria-label="Filtrar por categoria"><option value="">Todas as categorias</option></select>
+        </div>
+        <div id="listaItens" class="item-list"></div>
+      </section>
+
+      <section id="kitsSection" class="content-section hidden">
+        <div class="panel">
+          <span class="eyebrow">CONJUNTOS E COMBINAÇÕES</span><h2>Meus kits</h2>
+          <form id="novoKitForm" class="form-grid">
+            <div class="field"><label for="kitNome">Nome do kit</label><input id="kitNome" required placeholder="Ex.: Kit higiene rosa"></div>
+            <div class="field"><label for="kitQuantidade">Quantidade de kits</label><input id="kitQuantidade" type="number" min="1" value="1"></div>
+            <div class="field full"><label for="kitObservacao">Observação (opcional)</label><input id="kitObservacao" placeholder="Cores, peças incluídas..."></div>
+            <div class="field full"><button class="button button-primary" type="submit">Cadastrar kit</button><p id="kitFeedback" class="feedback"></p></div>
+          </form>
+        </div>
+        <div id="listaKits" class="item-list"></div>
+      </section>
+
+      <section id="adminSection" class="content-section hidden">
+        <div class="panel">
+          <span class="eyebrow">ÁREA RESTRITA</span><h2>Administração dos modelos</h2>
+          <p class="muted">Crie modelos oficiais e itens que poderão ser consultados pelos usuários.</p>
+          <form id="novoModeloForm" class="form-grid">
+            <div class="field"><label for="modeloNome">Nome do modelo</label><input id="modeloNome" required placeholder="Ex.: Enxoval básico"></div>
+            <div class="field"><label for="modeloTipo">Tipo</label><select id="modeloTipo"><option value="economico">Econômico</option><option value="basico">Básico</option><option value="completo">Completo</option><option value="recomendado">Recomendado</option></select></div>
+            <div class="field full"><label for="modeloDescricao">Descrição</label><input id="modeloDescricao" placeholder="Breve explicação do modelo"></div>
+            <div class="field full"><button class="button button-primary" type="submit">Criar modelo</button><p id="modeloFeedback" class="feedback"></p></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h3>Adicionar item a um modelo</h3>
+          <form id="novoItemModeloForm" class="form-grid">
+            <div class="field full"><label for="modeloEscolhido">Modelo</label><select id="modeloEscolhido"></select></div>
+            <div class="field"><label for="modeloItemNome">Nome do item</label><input id="modeloItemNome" required></div>
+            <div class="field"><label for="modeloItemCategoria">Categoria</label><input id="modeloItemCategoria" required placeholder="Roupinhas, higiene..."></div>
+            <div class="field"><label for="modeloItemQtd">Quantidade recomendada</label><input id="modeloItemQtd" type="number" min="1" value="1"></div>
+            <div class="field"><label for="modeloItemTamanho">Tamanho</label><input id="modeloItemTamanho" placeholder="RN, P, M..."></div>
+            <div class="field full"><label for="modeloItemDetalhes">Detalhes</label><input id="modeloItemDetalhes"></div>
+            <div class="field full"><button class="button button-primary" type="submit">Adicionar item ao modelo</button><p id="modeloItemFeedback" class="feedback"></p></div>
+          </form>
+          <div id="listaModelos" class="item-list"></div>
+        </div>
+      </section>
     </section>
-
-    <section id="pagina-compras" class="pagina">
-      <h2>Minhas compras</h2>
-      <p>Acompanhe os valores dos itens do enxoval.</p>
-
-      <div class="resumos">
-        <div class="cartao">
-          <span>Valor estimado dos itens</span>
-          <strong id="valor-total">R$ 0,00</strong>
-        </div>
-        <div class="cartao">
-          <span>Valor dos itens que já tenho</span>
-          <strong id="valor-tenho">R$ 0,00</strong>
-        </div>
-        <div class="cartao">
-          <span>Valor estimado do que falta</span>
-          <strong id="valor-falta">R$ 0,00</strong>
-        </div>
-      </div>
-
-      <div class="cartao">
-        <h3>Itens que faltam comprar</h3>
-        <div id="lista-compras"></div>
-      </div>
-    </section>
-
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </main>
-
-  <dialog id="modal-item">
-    <form id="form-item">
-      <h2 id="titulo-modal">Adicionar item</h2>
-
-      <label for="nome-item">Nome do item *</label>
-      <input type="text" id="nome-item" required placeholder="Ex.: Body manga curta">
-
-      <label for="categoria-item">Categoria *</label>
-      <select id="categoria-item" required>
-        <option value="">Escolha uma categoria</option>
-        <option>Roupinhas</option>
-        <option>Quarto</option>
-        <option>Banho</option>
-        <option>Higiene</option>
-        <option>Alimentação</option>
-        <option>Fraldas</option>
-        <option>Acessórios</option>
-        <option>Passeio</option>
-        <option>Maternidade</option>
-        <option>Mamãe</option>
-        <option>Outros</option>
-      </select>
-
-      <label for="quantidade-item">Quantidade necessária</label>
-      <input type="number" id="quantidade-item" min="1" value="1">
-
-      <label for="tenho-item">Quantidade que já tenho</label>
-      <input type="number" id="tenho-item" min="0" value="0">
-
-      <label for="preco-item">Preço unitário (R$)</label>
-      <input type="number" id="preco-item" min="0" step="0.01" placeholder="0,00">
-
-      <label for="loja-item">Loja</label>
-      <select id="loja-item">
-        <option value="">Não definida</option>
-        <option>Shopee</option>
-        <option>Shein</option>
-        <option>Amazon</option>
-        <option>Loja física</option>
-        <option>Outra</option>
-      </select>
-
-      <label for="link-item">Link do produto</label>
-      <input type="url" id="link-item" placeholder="https://">
-
-      <label for="observacao-item">Observações</label>
-      <textarea id="observacao-item" placeholder="Tamanho, cor, detalhes..."></textarea>
-
-      <div class="acoes-modal">
-        <button type="button" class="botao-secundario" id="cancelar-modal">Cancelar</button>
-        <button type="submit" class="botao-principal">Salvar item</button>
-      </div>
-    </form>
-  </dialog>
-
-  <footer>
-    <p>Feito com carinho para a Ágata Vitória 🦋</p>
-  </footer>
-
-  <script src="script.js"></script>
+  <footer class="footer">Baby Enxoval <span>•</span> Organize com carinho, compre com consciência.</footer>
 </body>
-        </html>
+</html>

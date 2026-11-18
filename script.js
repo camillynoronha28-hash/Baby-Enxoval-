@@ -1,411 +1,177 @@
-const categorias = [
-  "Roupinhas",
-  "Quarto",
-  "Banho",
-  "Higiene",
-  "Alimentação",
-  "Fraldas",
-  "Acessórios",
-  "Passeio",
-  "Maternidade",
-  "Mamãe",
-  "Outros"
-];
+// CONFIGURAÇÃO: use a URL do projeto e a chave PUBLICÁVEL do Supabase.
+// Nunca coloque aqui a chave secreta do projeto.
+const SUPABASE_URL = "https://COLOQUE-A-REFERENCIA-DO-PROJETO.supabase.co";
+const SUPABASE_ANON_KEY = "COLE-AQUI-SUA-CHAVE-PUBLICAVEL";
 
-const CHAVE = "meuEnxovalDadosV1";
+const configurado = !SUPABASE_URL.includes("COLOQUE") && !SUPABASE_ANON_KEY.includes("COLE-AQUI");
+const sb = configurado && window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-let dados = carregarDados();
-let filtroAtual = "todos";
-let itemEditando = null;
+const $ = (id) => document.getElementById(id);
+const views = ["authView","perfilView","appView"];
+let usuarioAtual = null;
+let bebeAtual = null;
+let itensAtuais = [];
+let kitsAtuais = [];
+let modelosAtuais = [];
+let modoCriarConta = false;
+let souAdmin = false;
 
-function carregarDados() {
-  try {
-    const salvo = localStorage.getItem(CHAVE);
-    return salvo
-      ? JSON.parse(salvo)
-      : { itens: [], orcamento: 0 };
-  } catch {
-    return { itens: [], orcamento: 0 };
-  }
+function mostrar(id) { views.forEach(v => $(v).classList.toggle("hidden", v !== id)); }
+function feedback(id, msg, erro=false) { const el=$(id); if(el){el.textContent=msg;el.style.color=erro?"#b44d65":"";} }
+function toast(msg) { const el=$("toast");el.textContent=msg;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2800); }
+function erroAmigavel(e) {
+  const m = e?.message || "Não foi possível concluir. Tente novamente.";
+  if (m.includes("Invalid login")) return "E-mail ou senha incorretos.";
+  if (m.includes("already registered")) return "Este e-mail já tem uma conta. Use a opção Entrar.";
+  if (m.includes("Email not confirmed")) return "Confirme seu e-mail pelo link enviado e depois entre.";
+  if (m.includes("row-level security")) return "A proteção do banco bloqueou esta ação. Avise a administradora para conferir as permissões.";
+  return m;
 }
-
-function salvarDados() {
-  localStorage.setItem(CHAVE, JSON.stringify(dados));
+async function verificarAdmin() {
+  const {data,error}=await sb.from("app_admins").select("user_id").eq("user_id",usuarioAtual.id).maybeSingle();
+  if(error && error.code!=="PGRST116") console.warn(error);
+  souAdmin=!!data;
+  $("adminNav").classList.toggle("hidden",!souAdmin);
 }
-
-function dinheiro(valor) {
-  return Number(valor || 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  });
-}
-
-function elemento(id) {
-  return document.getElementById(id);
-}
-
-function escapar(texto) {
-  return String(texto ?? "").replace(/[&<>"']/g, caractere => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  })[caractere]);
-}
-
-function abrirPagina(nome) {
-  document.querySelectorAll(".pagina").forEach(pagina => {
-    pagina.classList.remove("ativa");
-  });
-
-  document.querySelectorAll(".menu-btn").forEach(botao => {
-    botao.classList.remove("ativo");
-  });
-
-  elemento("pagina-" + nome).classList.add("ativa");
-
-  const botao = document.querySelector(
-    `.menu-btn[data-pagina="${nome}"]`
-  );
-
-  if (botao) botao.classList.add("ativo");
-
-  atualizarTudo();
-}
-
-document.querySelectorAll(".menu-btn").forEach(botao => {
-  botao.addEventListener("click", () => {
-    abrirPagina(botao.dataset.pagina);
-  });
-});
-
-document.querySelectorAll("[data-ir]").forEach(botao => {
-  botao.addEventListener("click", () => {
-    abrirPagina(botao.dataset.ir);
-  });
-});
-
-function abrirModal(id = null) {
-  itemEditando = id;
-
-  elemento("form-item").reset();
-
-  if (id !== null) {
-    const item = dados.itens.find(item => item.id === id);
-
-    if (!item) return;
-
-    elemento("titulo-modal").textContent = "Editar item";
-    elemento("nome-item").value = item.nome;
-    elemento("categoria-item").value = item.categoria;
-    elemento("quantidade-item").value = item.quantidade;
-    elemento("tenho-item").value = item.tenho;
-    elemento("preco-item").value = item.preco || "";
-    elemento("loja-item").value = item.loja || "";
-    elemento("link-item").value = item.link || "";
-    elemento("observacao-item").value = item.observacao || "";
-  } else {
-    elemento("titulo-modal").textContent = "Adicionar item";
-    elemento("quantidade-item").value = 1;
-    elemento("tenho-item").value = 0;
-  }
-
-  elemento("modal-item").showModal();
-}
-
-elemento("adicionar-item").addEventListener("click", () => {
-  abrirModal();
-});
-
-elemento("atalho-adicionar").addEventListener("click", () => {
-  abrirModal();
-});
-
-elemento("cancelar-modal").addEventListener("click", () => {
-  elemento("modal-item").close();
-});
-
-elemento("form-item").addEventListener("submit", evento => {
-  evento.preventDefault();
-
-  const nome = elemento("nome-item").value.trim();
-  const categoria = elemento("categoria-item").value;
-
-  if (!nome || !categoria) {
-    alert("Preencha o nome e a categoria do item.");
+async function carregarPerfilEBebe() {
+  const {data:perfil,error:pErr}=await sb.from("profiles").select("*").eq("id",usuarioAtual.id).maybeSingle();
+  if(pErr) throw pErr;
+  if(!perfil || !perfil.nome) {
+    $("nomeBebe").value="";
+    mostrar("perfilView");
     return;
   }
-
-  const quantidade = Math.max(
-    1,
-    Math.floor(Number(elemento("quantidade-item").value) || 1)
-  );
-
-  const tenho = Math.min(
-    quantidade,
-    Math.max(
-      0,
-      Math.floor(Number(elemento("tenho-item").value) || 0)
-    )
-  );
-
-  const item = {
-    id: itemEditando ?? Date.now(),
-    nome,
-    categoria,
-    quantidade,
-    tenho,
-    preco: Math.max(0, Number(elemento("preco-item").value) || 0),
-    loja: elemento("loja-item").value,
-    link: elemento("link-item").value.trim(),
-    observacao: elemento("observacao-item").value.trim()
-  };
-
-  if (itemEditando !== null) {
-    const indice = dados.itens.findIndex(
-      existente => existente.id === itemEditando
-    );
-
-    if (indice !== -1) {
-      dados.itens[indice] = item;
+  const {data:bebes,error:bErr}=await sb.from("babies").select("*").eq("user_id",usuarioAtual.id).order("created_at",{ascending:true}).limit(1);
+  if(bErr) throw bErr;
+  if(!bebes || !bebes.length) { mostrar("perfilView"); return; }
+  bebeAtual=bebes[0];
+  $("tituloBebe").textContent=bebeAtual.nome || "Meu bebê";
+  const data=bebeAtual.data_prevista ? new Date(bebeAtual.data_prevista+"T12:00:00").toLocaleDateString("pt-BR") : "";
+  $("subtituloBebe").textContent=[data ? "Previsão de chegada: "+data : "", bebeAtual.cidade, bebeAtual.estado].filter(Boolean).join(" • ");
+  await verificarAdmin();
+  await carregarDados();
+  mostrar("appView");
+}
+async function carregarDados() {
+  const [itensRes,kitsRes,modelosRes]=await Promise.all([
+    sb.from("user_items").select("*").eq("user_id",usuarioAtual.id).eq("baby_id",bebeAtual.id).order("created_at",{ascending:false}),
+    sb.from("kits").select("*").eq("user_id",usuarioAtual.id).eq("baby_id",bebeAtual.id).order("created_at",{ascending:false}),
+    sb.from("templates").select("*").eq("publicado",true).order("nome")
+  ]);
+  if(itensRes.error) throw itensRes.error;
+  if(kitsRes.error) throw kitsRes.error;
+  itensAtuais=itensRes.data||[];kitsAtuais=kitsRes.data||[];modelosAtuais=modelosRes.data||[];
+  renderizarItens();renderizarKits();atualizarResumo();
+  if(souAdmin) await carregarModelosAdmin();
+}
+function atualizarResumo(){
+  const total=itensAtuais.length, tenho=itensAtuais.filter(i=>i.tenho).length, pct=total?Math.round(tenho/total*100):0;
+  $("totalItens").textContent=total;$("itensTenho").textContent=tenho;$("itensFaltam").textContent=total-tenho;
+  $("progressoTexto").textContent=pct+"%";$("progressoBarra").style.width=pct+"%";
+}
+function renderizarItens(){
+  const filtro=$("filtroCategoria").value;
+  const cats=[...new Set(itensAtuais.map(i=>i.categoria).filter(Boolean))].sort();
+  $("filtroCategoria").innerHTML='<option value="">Todas as categorias</option>'+cats.map(c=>`<option>${esc(c)}</option>`).join("");
+  $("filtroCategoria").value=filtro;
+  const lista=itensAtuais.filter(i=>!filtro||i.categoria===filtro);
+  $("listaItens").innerHTML=lista.length?lista.map(i=>`<article class="item-row ${i.tenho?"done":""}">
+    <input type="checkbox" aria-label="Marcar como já tenho" data-check="${i.id}" ${i.tenho?"checked":""}>
+    <div class="item-info"><strong>${esc(i.nome)}</strong><small>${esc(i.categoria||"Sem categoria")} • Qtd.: ${i.quantidade||1}${i.tamanho?" • "+esc(i.tamanho):""}${i.detalhes?" • "+esc(i.detalhes):""}</small></div>
+    <button class="delete" type="button" data-delete="${i.id}">Excluir</button>
+  </article>`).join(""):'<div class="panel muted">Sua lista ainda está vazia. Adicione seu primeiro item no resumo.</div>';
+}
+function renderizarKits(){
+  $("listaKits").innerHTML=kitsAtuais.length?kitsAtuais.map(k=>`<article class="item-row"><div class="item-info"><strong>${esc(k.nome)}</strong><small>Quantidade: ${k.quantidade_kits||1}${k.observacao?" • "+esc(k.observacao):""}</small></div><button class="delete" data-kitdelete="${k.id}" type="button">Excluir</button></article>`).join(""):'<div class="panel muted">Você ainda não cadastrou kits.</div>';
+}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+async function entrarNoApp(){
+  if(!sb){$("avisoConfig").classList.remove("hidden");return;}
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){mostrar("authView");return;}
+  usuarioAtual=session.user;
+  $("sairBtn").classList.remove("hidden");
+  try{await carregarPerfilEBebe();}catch(e){toast(erroAmigavel(e));console.error(e);}
+}
+$("entrarTab").addEventListener("click",()=>{modoCriarConta=false;$("entrarTab").classList.add("active");$("criarTab").classList.remove("active");$("authSubmit").textContent="Entrar";$("senha").autocomplete="current-password";feedback("authFeedback","");});
+$("criarTab").addEventListener("click",()=>{modoCriarConta=true;$("criarTab").classList.add("active");$("entrarTab").classList.remove("active");$("authSubmit").textContent="Criar conta";$("senha").autocomplete="new-password";feedback("authFeedback","");});
+$("authForm").addEventListener("submit",async e=>{
+  e.preventDefault();if(!sb){$("avisoConfig").classList.remove("hidden");return;}
+  const email=$("email").value.trim(),password=$("senha").value;
+  $("authSubmit").disabled=true;feedback("authFeedback","Aguarde...");
+  try{
+    if(modoCriarConta){
+      const {data,error}=await sb.auth.signUp({email,password});if(error)throw error;
+      if(data.session){usuarioAtual=data.user;$("sairBtn").classList.remove("hidden");mostrar("perfilView");}
+      else feedback("authFeedback","Conta criada! Confira seu e-mail para confirmar o cadastro e depois entre.");
+    }else{
+      const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;
+      await entrarNoApp();
     }
-  } else {
-    dados.itens.push(item);
-  }
-
-  salvarDados();
-  elemento("modal-item").close();
-  atualizarTudo();
+  }catch(err){feedback("authFeedback",erroAmigavel(err),true);}
+  finally{$("authSubmit").disabled=false;}
 });
-
-function excluirItem(id) {
-  if (!confirm("Deseja realmente excluir este item?")) return;
-
-  dados.itens = dados.itens.filter(item => item.id !== id);
-
-  salvarDados();
-  atualizarTudo();
-}
-
-function atualizarQuantidade(id, valor) {
-  const item = dados.itens.find(item => item.id === id);
-
-  if (!item) return;
-
-  item.tenho = Math.min(
-    item.quantidade,
-    Math.max(0, Math.floor(Number(valor) || 0))
-  );
-
-  salvarDados();
-  atualizarTudo();
-}
-
-function filtrarItens() {
-  const busca = elemento("busca").value.toLowerCase().trim();
-
-  return dados.itens.filter(item => {
-    const correspondeBusca =
-      item.nome.toLowerCase().includes(busca) ||
-      item.categoria.toLowerCase().includes(busca);
-
-    const correspondeFiltro =
-      filtroAtual === "todos" ||
-      (filtroAtual === "pendentes" && item.tenho < item.quantidade) ||
-      (filtroAtual === "tenho" && item.tenho >= item.quantidade);
-
-    return correspondeBusca && correspondeFiltro;
-  });
-}
-
-document.querySelectorAll(".filtro").forEach(botao => {
-  botao.addEventListener("click", () => {
-    filtroAtual = botao.dataset.filtro;
-
-    document.querySelectorAll(".filtro").forEach(f => {
-      f.classList.remove("selecionado");
-    });
-
-    botao.classList.add("selecionado");
-    renderizarLista();
-  });
+$("perfilForm").addEventListener("submit",async e=>{
+  e.preventDefault();if(!usuarioAtual)return;
+  feedback("perfilFeedback","Salvando...");
+  try{
+    const nome=$("nomeBebe").value.trim();
+    const {error:pe}=await sb.from("profiles").upsert({id:usuarioAtual.id,nome:usuarioAtual.email?.split("@")[0]||"Usuário"},{onConflict:"id"});if(pe)throw pe;
+    const payload={user_id:usuarioAtual.id,nome,sexo:$("sexoBebe").value,data_prevista:$("dataParto").value||null,regiao:$("regiao").value||null,estado:$("estado").value.trim().toUpperCase()||null,cidade:$("cidade").value.trim()||null};
+    const {data,error}=await sb.from("babies").insert(payload).select().single();if(error)throw error;
+    bebeAtual=data;await verificarAdmin();await carregarDados();
+    $("tituloBebe").textContent=nome;$("subtituloBebe").textContent=[payload.data_prevista?new Date(payload.data_prevista+"T12:00:00").toLocaleDateString("pt-BR"):"",payload.cidade,payload.estado].filter(Boolean).join(" • ");
+    mostrar("appView");toast("Perfil salvo com sucesso!");
+  }catch(err){feedback("perfilFeedback",erroAmigavel(err),true);}
 });
-
-elemento("busca").addEventListener("input", renderizarLista);
-
-function renderizarLista() {
-  const lista = elemento("lista-itens");
-  const itens = filtrarItens();
-
-  lista.innerHTML = "";
-
-  elemento("lista-vazia").style.display =
-    itens.length ? "none" : "block";
-
-  itens.forEach(item => {
-    const faltam = Math.max(0, item.quantidade - item.tenho);
-
-    const card = document.createElement("article");
-    card.className = "item-card";
-
-    card.innerHTML = `
-      <h3>${escapar(item.nome)}</h3>
-      <p>Categoria: ${escapar(item.categoria)}</p>
-      <p>Quantidade necessária: ${item.quantidade}</p>
-      <p>Faltam: ${faltam}</p>
-      <p>Preço unitário: ${dinheiro(item.preco)}</p>
-      ${item.loja ? `<p>Loja: ${escapar(item.loja)}</p>` : ""}
-      ${item.observacao ? `<p>${escapar(item.observacao)}</p>` : ""}
-      ${item.link ? `<p><a href="${escapar(item.link)}" target="_blank" rel="noopener noreferrer">Ver produto</a></p>` : ""}
-
-      <label>
-        Já tenho:
-        <input
-          type="number"
-          min="0"
-          max="${item.quantidade}"
-          value="${item.tenho}"
-          data-quantidade="${item.id}"
-        >
-      </label>
-
-      <div class="acoes">
-        <button data-editar="${item.id}">Editar</button>
-        <button data-excluir="${item.id}">Excluir</button>
-      </div>
-    `;
-
-    lista.appendChild(card);
-  });
-
-  lista.querySelectorAll("[data-editar]").forEach(botao => {
-    botao.addEventListener("click", () => {
-      abrirModal(Number(botao.dataset.editar));
-    });
-  });
-
-  lista.querySelectorAll("[data-excluir]").forEach(botao => {
-    botao.addEventListener("click", () => {
-      excluirItem(Number(botao.dataset.excluir));
-    });
-  });
-
-  lista.querySelectorAll("[data-quantidade]").forEach(input => {
-    input.addEventListener("change", () => {
-      atualizarQuantidade(
-        Number(input.dataset.quantidade),
-        input.value
-      );
-    });
-  });
-}
-
-function renderizarInicio() {
-  const total = dados.itens.reduce(
-    (soma, item) => soma + item.quantidade,
-    0
-  );
-
-  const tenho = dados.itens.reduce(
-    (soma, item) => soma + item.tenho,
-    0
-  );
-
-  const faltam = Math.max(0, total - tenho);
-
-  const porcentagem = total
-    ? Math.round((tenho / total) * 100)
-    : 0;
-
-  elemento("total-itens").textContent = dados.itens.length;
-  elemento("total-tenho").textContent = tenho;
-  elemento("total-faltam").textContent = faltam;
-
-  elemento("barra-progresso").style.width = porcentagem + "%";
-  elemento("texto-progresso").textContent =
-    porcentagem + "% concluído";
-
-  elemento("orcamento").value = dados.orcamento || "";
-
-  const valorFalta = dados.itens.reduce(
-    (soma, item) =>
-      soma + (item.quantidade - item.tenho) * item.preco,
-    0
-  );
-
-  if (dados.orcamento > 0) {
-    const diferenca = dados.orcamento - valorFalta;
-
-    elemento("resumo-orcamento").textContent =
-      diferenca >= 0
-        ? `Ainda há ${dinheiro(diferenca)} disponíveis no orçamento.`
-        : `O valor estimado ultrapassa o orçamento em ${dinheiro(Math.abs(diferenca))}.`;
-  } else {
-    elemento("resumo-orcamento").textContent =
-      "Informe seu orçamento para acompanhar os gastos.";
-  }
-}
-
-elemento("orcamento").addEventListener("change", evento => {
-  dados.orcamento = Math.max(0, Number(evento.target.value) || 0);
-  salvarDados();
-  atualizarTudo();
+$("novoItemForm").addEventListener("submit",async e=>{
+  e.preventDefault();if(!bebeAtual)return;
+  const payload={user_id:usuarioAtual.id,baby_id:bebeAtual.id,nome:$("itemNome").value.trim(),categoria:$("itemCategoria").value,quantidade:Number($("itemQuantidade").value)||1,tamanho:$("itemTamanho").value.trim()||null,detalhes:$("itemDetalhes").value.trim()||null,tenho:false};
+  try{const {error}=await sb.from("user_items").insert(payload);if(error)throw error;e.target.reset();$("itemQuantidade").value=1;await carregarDados();feedback("itemFeedback","Item adicionado!");}
+  catch(err){feedback("itemFeedback",erroAmigavel(err),true);}
 });
-
-function renderizarCompras() {
-  const valorTotal = dados.itens.reduce(
-    (soma, item) => soma + item.quantidade * item.preco,
-    0
-  );
-
-  const valorTenho = dados.itens.reduce(
-    (soma, item) => soma + item.tenho * item.preco,
-    0
-  );
-
-  const valorFalta = Math.max(0, valorTotal - valorTenho);
-
-  elemento("valor-total").textContent = dinheiro(valorTotal);
-  elemento("valor-tenho").textContent = dinheiro(valorTenho);
-  elemento("valor-falta").textContent = dinheiro(valorFalta);
-
-  const lista = elemento("lista-compras");
-  lista.innerHTML = "";
-
-  const pendentes = dados.itens.filter(
-    item => item.tenho < item.quantidade
-  );
-
-  if (!pendentes.length) {
-    lista.innerHTML = "<p>Você não tem itens pendentes!</p>";
-    return;
-  }
-
-  pendentes.forEach(item => {
-    const faltam = item.quantidade - item.tenho;
-    const total = faltam * item.preco;
-
-    const div = document.createElement("div");
-    div.className = "item-card";
-
-    div.innerHTML = `
-      <h3>${escapar(item.nome)}</h3>
-      <p>Categoria: ${escapar(item.categoria)}</p>
-      <p>Quantidade que falta: ${faltam}</p>
-      <p>Valor estimado: ${dinheiro(total)}</p>
-      ${item.loja ? `<p>Loja: ${escapar(item.loja)}</p>` : ""}
-      ${item.link ? `<p><a href="${escapar(item.link)}" target="_blank" rel="noopener noreferrer">Ver produto</a></p>` : ""}
-    `;
-
-    lista.appendChild(div);
-  });
+$("listaItens").addEventListener("change",async e=>{
+  const id=e.target.dataset.check;if(!id)return;
+  const {error}=await sb.from("user_items").update({tenho:e.target.checked}).eq("id",id).eq("user_id",usuarioAtual.id);
+  if(error){toast(erroAmigavel(error));return;}await carregarDados();
+});
+$("listaItens").addEventListener("click",async e=>{
+  const id=e.target.dataset.delete;if(!id)return;
+  if(!confirm("Excluir este item do seu enxoval?"))return;
+  const {error}=await sb.from("user_items").delete().eq("id",id).eq("user_id",usuarioAtual.id);
+  if(error)toast(erroAmigavel(error));else{await carregarDados();toast("Item excluído.");}
+});
+$("filtroCategoria").addEventListener("change",renderizarItens);
+$("novoKitForm").addEventListener("submit",async e=>{
+  e.preventDefault();const payload={user_id:usuarioAtual.id,baby_id:bebeAtual.id,nome:$("kitNome").value.trim(),quantidade_kits:Number($("kitQuantidade").value)||1,observacao:$("kitObservacao").value.trim()||null};
+  try{const {error}=await sb.from("kits").insert(payload);if(error)throw error;e.target.reset();$("kitQuantidade").value=1;await carregarDados();feedback("kitFeedback","Kit cadastrado!");}catch(err){feedback("kitFeedback",erroAmigavel(err),true);}
+});
+$("listaKits").addEventListener("click",async e=>{
+  const id=e.target.dataset.kitdelete;if(!id)return;if(!confirm("Excluir este kit?"))return;
+  const {error}=await sb.from("kits").delete().eq("id",id).eq("user_id",usuarioAtual.id);if(error)toast(erroAmigavel(error));else{await carregarDados();toast("Kit excluído.");}
+});
+document.querySelectorAll(".nav-button").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".nav-button").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".content-section").forEach(s=>s.classList.toggle("hidden",s.id!==b.dataset.section));}));
+async function carregarModelosAdmin(){
+  if(!souAdmin)return;
+  const {data,error}=await sb.from("templates").select("*").order("nome");if(error){toast(erroAmigavel(error));return;}
+  const modelos=data||[];
+  $("modeloEscolhido").innerHTML=modelos.map(m=>`<option value="${m.id}">${esc(m.nome)}</option>`).join("");
+  $("listaModelos").innerHTML=modelos.length?modelos.map(m=>`<article class="item-row"><div class="item-info"><strong>${esc(m.nome)}</strong><small>${esc(m.tipo||"")} • ${m.publicado?"Publicado":"Rascunho"}${m.descricao?" • "+esc(m.descricao):""}</small></div><button class="delete" type="button" data-publicar="${m.id}" data-status="${m.publicado}">${m.publicado?"Ocultar":"Publicar"}</button></article>`).join(""):'<p class="muted">Nenhum modelo criado ainda.</p>';
 }
-
-function atualizarTudo() {
-  renderizarInicio();
-  renderizarLista();
-  renderizarCompras();
-}
-
-atualizarTudo();
+$("novoModeloForm").addEventListener("submit",async e=>{
+  e.preventDefault();if(!souAdmin)return;
+  const payload={nome:$("modeloNome").value.trim(),tipo:$("modeloTipo").value,descricao:$("modeloDescricao").value.trim()||null,publicado:true};
+  try{const {error}=await sb.from("templates").insert(payload);if(error)throw error;e.target.reset();await carregarModelosAdmin();feedback("modeloFeedback","Modelo criado e publicado.");}catch(err){feedback("modeloFeedback",erroAmigavel(err),true);}
+});
+$("novoItemModeloForm").addEventListener("submit",async e=>{
+  e.preventDefault();if(!souAdmin)return;
+  const payload={template_id:$("modeloEscolhido").value,nome:$("modeloItemNome").value.trim(),categoria:$("modeloItemCategoria").value.trim(),quantidade:Number($("modeloItemQtd").value)||1,tamanho:$("modeloItemTamanho").value.trim()||null,detalhes:$("modeloItemDetalhes").value.trim()||null};
+  try{const {error}=await sb.from("template_items").insert(payload);if(error)throw error;e.target.reset();await carregarModelosAdmin();feedback("modeloItemFeedback","Item adicionado ao modelo.");}catch(err){feedback("modeloItemFeedback",erroAmigavel(err),true);}
+});
+$("listaModelos").addEventListener("click",async e=>{
+  const id=e.target.dataset.publicar;if(!id)return;const novo=e.target.dataset.status!=="true";
+  const {error}=await sb.from("templates").update({publicado:novo}).eq("id",id);if(error)toast(erroAmigavel(error));else{await carregarModelosAdmin();toast(novo?"Modelo publicado.":"Modelo ocultado.");}
+});
+$("sairBtn").addEventListener("click",async()=>{if(sb)await sb.auth.signOut();usuarioAtual=null;bebeAtual=null;$("sairBtn").classList.add("hidden");mostrar("authView");});
+if(sb){sb.auth.onAuthStateChange((_event,session)=>{if(session){usuarioAtual=session.user;}else{usuarioAtual=null;mostrar("authView");$("sairBtn").classList.add("hidden");}});entrarNoApp();}
+else{$("avisoConfig").classList.remove("hidden");mostrar("authView");}
