@@ -239,7 +239,7 @@ $("perfilForm").addEventListener("submit",async e=>{
       quantidade:item.quantidade,
       tamanho:item.tamanho,
       detalhes:item.detalhes,
-      tenho:false
+      tenho:0
     }));
 
     const {error:uiError}=await sb
