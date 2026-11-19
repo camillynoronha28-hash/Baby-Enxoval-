@@ -111,19 +111,78 @@ $("authForm").addEventListener("submit",async e=>{
   }catch(err){feedback("authFeedback",erroAmigavel(err),true);}
   finally{$("authSubmit").disabled=false;}
 });
+
 $("perfilForm").addEventListener("submit",async e=>{
-  e.preventDefault();if(!usuarioAtual)return;
+  e.preventDefault();
+  if(!usuarioAtual)return;
+
   feedback("perfilFeedback","Salvando...");
+
   try{
     const nome=$("nomeBebe").value.trim();
-    const {error:pe}=await sb.from("profiles").upsert({id:usuarioAtual.id,nome:usuarioAtual.email?.split("@")[0]||"Usuário"},{onConflict:"id"});if(pe)throw pe;
-    const payload={user_id:usuarioAtual.id,nome,sexo:$("sexoBebe").value,data_prevista:$("dataParto").value||null,regiao:$("regiao").value||null,estado:$("estado").value.trim().toUpperCase()||null,cidade:$("cidade").value.trim()||null};
-    const {data,error}=await sb.from("babies").insert(payload).select().single();if(error)throw error;
-    bebeAtual=data;await verificarAdmin();await carregarDados();
-    $("tituloBebe").textContent=nome;$("subtituloBebe").textContent=[payload.data_prevista?new Date(payload.data_prevista+"T12:00:00").toLocaleDateString("pt-BR"):"",payload.cidade,payload.estado].filter(Boolean).join(" • ");
-    mostrar("appView");toast("Perfil salvo com sucesso!");
-  }catch(err){feedback("perfilFeedback",erroAmigavel(err),true);}
+
+    const {error:pe}=await sb.from("profiles").upsert({
+      id:usuarioAtual.id,
+      nome:usuarioAtual.email?.split("@")[0]||"Usuário"
+    },{onConflict:"id"});
+
+    if(pe)throw pe;
+
+    const {data:modelos,error:me}=await sb
+      .from("templates")
+      .select("id,tipo")
+      .eq("publicado",true);
+
+    if(me)throw me;
+
+    const modeloEscolhido=modelos.find(
+      m=>m.tipo===$("tipoEnxoval").value
+    );
+
+    if(!modeloEscolhido){
+      throw new Error("Não foi possível encontrar o modelo escolhido.");
+    }
+
+    const payload={
+      user_id:usuarioAtual.id,
+      template_id:modeloEscolhido.id,
+      nome,
+      sexo:$("sexoBebe").value,
+      data_prevista:$("dataParto").value||null,
+      regiao:$("regiao").value||null,
+      estado:$("estado").value.trim().toUpperCase()||null,
+      cidade:$("cidade").value.trim()||null
+    };
+
+    const {data,error}=await sb
+      .from("babies")
+      .insert(payload)
+      .select()
+      .single();
+
+    if(error)throw error;
+
+    bebeAtual=data;
+    await verificarAdmin();
+    await carregarDados();
+
+    $("tituloBebe").textContent=nome;
+    $("subtituloBebe").textContent=[
+      payload.data_prevista
+        ? new Date(payload.data_prevista+"T12:00:00").toLocaleDateString("pt-BR")
+        : "",
+      payload.cidade,
+      payload.estado
+    ].filter(Boolean).join(" • ");
+
+    mostrar("appView");
+    toast("Perfil salvo com sucesso!");
+
+  }catch(err){
+    feedback("perfilFeedback",erroAmigavel(err),true);
+  }
 });
+
 $("novoItemForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!bebeAtual)return;
   const payload={user_id:usuarioAtual.id,baby_id:bebeAtual.id,nome:$("itemNome").value.trim(),categoria:$("itemCategoria").value,quantidade:Number($("itemQuantidade").value)||1,tamanho:$("itemTamanho").value.trim()||null,detalhes:$("itemDetalhes").value.trim()||null,tenho:false};
