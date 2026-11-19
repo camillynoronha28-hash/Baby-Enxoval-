@@ -165,6 +165,7 @@ $("authForm").addEventListener("submit",async e=>{
   finally{$("authSubmit").disabled=false;}
 });
 
+
 $("perfilForm").addEventListener("submit",async e=>{
   e.preventDefault();
   if(!usuarioAtual)return;
@@ -207,15 +208,46 @@ $("perfilForm").addEventListener("submit",async e=>{
       cidade:$("cidade").value.trim()||null
     };
 
-    const {data,error}=await sb
+    const {data:bebe,error:be}=await sb
       .from("babies")
       .insert(payload)
       .select()
       .single();
 
-    if(error)throw error;
+    if(be)throw be;
 
-    bebeAtual=data;
+    bebeAtual=bebe;
+
+    const {data:itensModelo,error:ie}=await sb
+      .from("template_items")
+      .select("id,nome,categoria,quantidade,tamanho,detalhes")
+      .eq("template_id",modeloEscolhido.id)
+      .order("ordem",{ascending:true});
+
+    if(ie)throw ie;
+
+    if(!itensModelo || !itensModelo.length){
+      throw new Error("O modelo escolhido não possui itens cadastrados.");
+    }
+
+    const itensParaSalvar=itensModelo.map(item=>({
+      user_id:usuarioAtual.id,
+      baby_id:bebe.id,
+      template_item_id:item.id,
+      nome:item.nome,
+      categoria:item.categoria,
+      quantidade:item.quantidade,
+      tamanho:item.tamanho,
+      detalhes:item.detalhes,
+      tenho:false
+    }));
+
+    const {error:uiError}=await sb
+      .from("user_items")
+      .insert(itensParaSalvar);
+
+    if(uiError)throw uiError;
+
     await verificarAdmin();
     await carregarDados();
 
@@ -229,12 +261,13 @@ $("perfilForm").addEventListener("submit",async e=>{
     ].filter(Boolean).join(" • ");
 
     mostrar("appView");
-    toast("Perfil salvo com sucesso!");
+    toast("Perfil e enxoval salvos com sucesso!");
 
   }catch(err){
     feedback("perfilFeedback",erroAmigavel(err),true);
   }
 });
+
 
 $("novoItemForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!bebeAtual)return;
