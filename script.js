@@ -118,9 +118,15 @@ async function carregarDados() {
 }
 
 function atualizarResumo(){
-  const total=itensAtuais.length, tenho=itensAtuais.filter(i=>i.tenho).length, pct=total?Math.round(tenho/total*100):0;
-  $("totalItens").textContent=total;$("itensTenho").textContent=tenho;$("itensFaltam").textContent=total-tenho;
-  $("progressoTexto").textContent=pct+"%";$("progressoBarra").style.width=pct+"%";
+  const total=itensAtuais.length;
+  const tenho=itensAtuais.filter(i=>i.tenho).length;
+  const pct=total?(tenho/total*100).toFixed(2):"0";
+
+  $("totalItens").textContent=total;
+  $("itensTenho").textContent=tenho;
+  $("itensFaltam").textContent=total-tenho;
+  $("progressoTexto").textContent=pct+"%";
+  $("progressoBarra").style.width=pct+"%";
 }
 function renderizarItens(){
   const filtro=$("filtroCategoria").value;
