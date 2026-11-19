@@ -277,7 +277,7 @@ $("perfilForm").addEventListener("submit",async e=>{
 
 $("novoItemForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!bebeAtual)return;
-  const payload={user_id:usuarioAtual.id,baby_id:bebeAtual.id,nome:$("itemNome").value.trim(),categoria:$("itemCategoria").value,quantidade:Number($("itemQuantidade").value)||1,tamanho:$("itemTamanho").value.trim()||null,detalhes:$("itemDetalhes").value.trim()||null,tenho:false};
+  const payload={user_id:usuarioAtual.id,baby_id:bebeAtual.id,nome:$("itemNome").value.trim(),categoria:$("itemCategoria").value,quantidade:Number($("itemQuantidade").value)||1,tamanho:$("itemTamanho").value.trim()||null,detalhes:$("itemDetalhes").value.trim()||null,tenho:0};
   try{const {error}=await sb.from("user_items").insert(payload);if(error)throw error;e.target.reset();$("itemQuantidade").value=1;await carregarDados();feedback("itemFeedback","Item adicionado!");}
   catch(err){feedback("itemFeedback",erroAmigavel(err),true);}
 });
