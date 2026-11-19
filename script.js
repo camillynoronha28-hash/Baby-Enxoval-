@@ -277,7 +277,7 @@ $("novoItemForm").addEventListener("submit",async e=>{
 });
 $("listaItens").addEventListener("change",async e=>{
   const id=e.target.dataset.check;if(!id)return;
-  const {error}=await sb.from("user_items").update({tenho:e.target.checked}).eq("id",id).eq("user_id",usuarioAtual.id);
+  const {error}=await sb.from("user_items").update({tenho:e.target.checked ? 1 : 0}).eq("id",id).eq("user_id",usuarioAtual.id);
   if(error){toast(erroAmigavel(error));return;}await carregarDados();
 });
 $("listaItens").addEventListener("click",async e=>{
