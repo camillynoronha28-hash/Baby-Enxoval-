@@ -33,37 +33,90 @@ async function verificarAdmin() {
   souAdmin=!!data;
   $("adminNav").classList.toggle("hidden",!souAdmin);
 }
+
 async function carregarPerfilEBebe() {
-  const {data:perfil,error:pErr}=await sb.from("profiles").select("*").eq("id",usuarioAtual.id).maybeSingle();
+  const {data:perfil,error:pErr}=await sb
+    .from("profiles")
+    .select("*")
+    .eq("id",usuarioAtual.id)
+    .maybeSingle();
+
   if(pErr) throw pErr;
+
   if(!perfil || !perfil.nome) {
     $("nomeBebe").value="";
     mostrar("perfilView");
     return;
   }
-  const {data:bebes,error:bErr}=await sb.from("babies").select("*").eq("user_id",usuarioAtual.id).order("created_at",{ascending:true}).limit(1);
+
+  const {data:bebes,error:bErr}=await sb
+    .from("babies")
+    .select("*")
+    .eq("user_id",usuarioAtual.id)
+    .order("criado_em",{ascending:true})
+    .limit(1);
+
   if(bErr) throw bErr;
-  if(!bebes || !bebes.length) { mostrar("perfilView"); return; }
+
+  if(!bebes || !bebes.length) {
+    mostrar("perfilView");
+    return;
+  }
+
   bebeAtual=bebes[0];
+
   $("tituloBebe").textContent=bebeAtual.nome || "Meu bebê";
-  const data=bebeAtual.data_prevista ? new Date(bebeAtual.data_prevista+"T12:00:00").toLocaleDateString("pt-BR") : "";
-  $("subtituloBebe").textContent=[data ? "Previsão de chegada: "+data : "", bebeAtual.cidade, bebeAtual.estado].filter(Boolean).join(" • ");
+
+  const data=bebeAtual.data_prevista
+    ? new Date(bebeAtual.data_prevista+"T12:00:00").toLocaleDateString("pt-BR")
+    : "";
+
+  $("subtituloBebe").textContent=[
+    data ? "Previsão de chegada: "+data : "",
+    bebeAtual.cidade,
+    bebeAtual.estado
+  ].filter(Boolean).join(" • ");
+
   await verificarAdmin();
   await carregarDados();
   mostrar("appView");
 }
+
 async function carregarDados() {
   const [itensRes,kitsRes,modelosRes]=await Promise.all([
-    sb.from("user_items").select("*").eq("user_id",usuarioAtual.id).eq("baby_id",bebeAtual.id).order("created_at",{ascending:false}),
-    sb.from("kits").select("*").eq("user_id",usuarioAtual.id).eq("baby_id",bebeAtual.id).order("created_at",{ascending:false}),
-    sb.from("templates").select("*").eq("publicado",true).order("nome")
+    sb.from("user_items")
+      .select("*")
+      .eq("user_id",usuarioAtual.id)
+      .eq("baby_id",bebeAtual.id)
+      .order("criado_em",{ascending:false}),
+
+    sb.from("kits")
+      .select("*")
+      .eq("user_id",usuarioAtual.id)
+      .eq("baby_id",bebeAtual.id)
+      .order("criado_em",{ascending:false}),
+
+    sb.from("templates")
+      .select("*")
+      .eq("publicado",true)
+      .order("nome")
   ]);
+
   if(itensRes.error) throw itensRes.error;
   if(kitsRes.error) throw kitsRes.error;
-  itensAtuais=itensRes.data||[];kitsAtuais=kitsRes.data||[];modelosAtuais=modelosRes.data||[];
-  renderizarItens();renderizarKits();atualizarResumo();
+  if(modelosRes.error) throw modelosRes.error;
+
+  itensAtuais=itensRes.data||[];
+  kitsAtuais=kitsRes.data||[];
+  modelosAtuais=modelosRes.data||[];
+
+  renderizarItens();
+  renderizarKits();
+  atualizarResumo();
+
   if(souAdmin) await carregarModelosAdmin();
 }
+
 function atualizarResumo(){
   const total=itensAtuais.length, tenho=itensAtuais.filter(i=>i.tenho).length, pct=total?Math.round(tenho/total*100):0;
   $("totalItens").textContent=total;$("itensTenho").textContent=tenho;$("itensFaltam").textContent=total-tenho;
