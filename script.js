@@ -330,6 +330,64 @@ $("listaItens").addEventListener("click",async e=>{
   }
 });
 
+$("editarItemForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+
+  const id=$("editarItemId").value;
+
+  const payload={
+    nome:$("editarNome").value.trim(),
+    categoria:$("editarCategoria").value.trim()||null,
+    quantidade:Number($("editarQuantidade").value)||1,
+    tamanho:$("editarTamanho").value.trim()||null,
+    cor:$("editarCor").value.trim()||null,
+    detalhes:$("editarDetalhes").value.trim()||null,
+    preco:Number($("editarPreco").value)||0,
+    loja:$("editarLoja").value.trim()||null,
+    link:$("editarLink").value.trim()||null,
+    observacao:$("editarObservacao").value.trim()||null
+  };
+  const {error}=await sb.from("user_items")
+  .update(payload)
+  .eq("id",id)
+  .eq("user_id",usuarioAtual.id)
+  .eq("baby_id",bebeAtual.id);
+
+if(error){
+  toast(erroAmigavel(error));
+  return;
+}
+
+$("editarItemArea").hidden=true;
+await carregarDados();
+toast("Item atualizado com sucesso!");
+});
+
+$("cancelarEdicao").addEventListener("click",()=>{
+  $("editarItemArea").hidden=true;
+});
+
+  const {error}=await sb.from("user_items")
+    .update(payload)
+    .eq("id",id)
+    .eq("user_id",usuarioAtual.id)
+    .eq("baby_id",bebeAtual.id);
+
+  if(error){
+    toast(erroAmigavel(error));
+    return;
+  }
+
+  $("editarItemArea").hidden=true;
+  await carregarDados();
+  toast("Item atualizado com sucesso!");
+});
+
+$("cancelarEdicao").addEventListener("click",()=>{
+  $("editarItemArea").hidden=true;
+});
+
+
 $("filtroCategoria").addEventListener("change",renderizarItens);
 $("novoKitForm").addEventListener("submit",async e=>{
   e.preventDefault();const payload={user_id:usuarioAtual.id,baby_id:bebeAtual.id,nome:$("kitNome").value.trim(),quantidade_kits:Number($("kitQuantidade").value)||1,observacao:$("kitObservacao").value.trim()||null};
