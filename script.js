@@ -347,11 +347,24 @@ $("editarItemForm").addEventListener("submit",async e=>{
     link:$("editarLink").value.trim()||null,
     observacao:$("editarObservacao").value.trim()||null
   };
-  const {error}=await sb.from("user_items")
+  const {data,error}=await sb.from("user_items")
   .update(payload)
   .eq("id",id)
   .eq("user_id",usuarioAtual.id)
-  .eq("baby_id",bebeAtual.id);
+  .eq("baby_id",bebeAtual.id)
+  .select();
+
+console.log("Resultado da edição:",data,error);
+
+if(error){
+  toast("Erro ao salvar: "+error.message);
+  return;
+}
+
+if(!data || data.length===0){
+  toast("Nenhum item foi atualizado. Confira o acesso ao item.");
+  return;
+}
 
 if(error){
   toast(erroAmigavel(error));
