@@ -137,7 +137,8 @@ function renderizarItens(){
   $("listaItens").innerHTML=lista.length?lista.map(i=>`<article class="item-row ${i.tenho?"done":""}">
     <input type="checkbox" aria-label="Marcar como já tenho" data-check="${i.id}" ${i.tenho?"checked":""}>
     <div class="item-info"><strong>${esc(i.nome)}</strong><small>${esc(i.categoria||"Sem categoria")} • Qtd.: ${i.quantidade||1}${i.tamanho?" • "+esc(i.tamanho):""}${i.detalhes?" • "+esc(i.detalhes):""}</small></div>
-    <button class="delete" type="button" data-delete="${i.id}">Excluir</button>
+    <button type="button" data-edit="${i.id}">Editar</button>
+<button class="delete" type="button" data-delete="${i.id}">Excluir</button>
   </article>`).join(""):'<div class="panel muted">Sua lista ainda está vazia. Adicione seu primeiro item no resumo.</div>';
 }
 function renderizarKits(){
