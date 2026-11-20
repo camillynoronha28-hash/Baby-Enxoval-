@@ -286,12 +286,49 @@ $("listaItens").addEventListener("change",async e=>{
   const {error}=await sb.from("user_items").update({tenho:e.target.checked ? 1 : 0}).eq("id",id).eq("user_id",usuarioAtual.id);
   if(error){toast(erroAmigavel(error));return;}await carregarDados();
 });
+
 $("listaItens").addEventListener("click",async e=>{
-  const id=e.target.dataset.delete;if(!id)return;
+
+  const editarId=e.target.dataset.edit;
+
+  if(editarId){
+    const item=itensAtuais.find(i=>i.id===editarId);
+    if(!item)return;
+
+    $("editarItemId").value=item.id;
+    $("editarNome").value=item.nome||"";
+    $("editarCategoria").value=item.categoria||"";
+    $("editarQuantidade").value=item.quantidade||1;
+    $("editarTamanho").value=item.tamanho||"";
+    $("editarCor").value=item.cor||"";
+    $("editarDetalhes").value=item.detalhes||"";
+    $("editarPreco").value=item.preco??0;
+    $("editarLoja").value=item.loja||"";
+    $("editarLink").value=item.link||"";
+    $("editarObservacao").value=item.observacao||"";
+
+    $("editarItemArea").hidden=false;
+    $("editarItemArea").scrollIntoView({behavior:"smooth"});
+    return;
+  }
+
+  const id=e.target.dataset.delete;
+  if(!id)return;
+
   if(!confirm("Excluir este item do seu enxoval?"))return;
-  const {error}=await sb.from("user_items").delete().eq("id",id).eq("user_id",usuarioAtual.id);
-  if(error)toast(erroAmigavel(error));else{await carregarDados();toast("Item excluído.");}
+
+  const {error}=await sb.from("user_items")
+    .delete()
+    .eq("id",id)
+    .eq("user_id",usuarioAtual.id);
+
+  if(error)toast(erroAmigavel(error));
+  else{
+    await carregarDados();
+    toast("Item excluído.");
+  }
 });
+
 $("filtroCategoria").addEventListener("change",renderizarItens);
 $("novoKitForm").addEventListener("submit",async e=>{
   e.preventDefault();const payload={user_id:usuarioAtual.id,baby_id:bebeAtual.id,nome:$("kitNome").value.trim(),quantidade_kits:Number($("kitQuantidade").value)||1,observacao:$("kitObservacao").value.trim()||null};
