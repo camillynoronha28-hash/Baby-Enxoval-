@@ -465,9 +465,7 @@ $("cancelarEdicao").addEventListener("click",()=>{
   toast("Item atualizado com sucesso!");
 });
 
-$("cancelarEdicao").addEventListener("click",()=>{
-  $("editarItemArea").hidden=true;
-});
+
 
 
 $("filtroCategoria").addEventListener("change",renderizarItens);
