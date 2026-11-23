@@ -41,7 +41,10 @@ async function carregarPerfilEBebe() {
     .eq("id",usuarioAtual.id)
     .maybeSingle();
 
-  if(pErr) throw pErr;
+  if(pErr){
+  console.error("ERRO AO BUSCAR PERFIL:",pErr);
+  throw new Error("Falha ao buscar perfil: "+pErr.message);
+  }
 
   if(!perfil || !perfil.nome) {
     $("nomeBebe").value="";
