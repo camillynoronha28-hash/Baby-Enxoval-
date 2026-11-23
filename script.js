@@ -449,16 +449,7 @@ $("cancelarEdicao").addEventListener("click",()=>{
   $("editarItemArea").hidden=true;
 });
 
-  const {error}=await sb.from("user_items")
-    .update(payload)
-    .eq("id",id)
-    .eq("user_id",usuarioAtual.id)
-    .eq("baby_id",bebeAtual.id);
-
-  if(error){
-    toast(erroAmigavel(error));
-    return;
-  }
+  
 
   $("editarItemArea").hidden=true;
   await carregarDados();
