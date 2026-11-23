@@ -151,12 +151,12 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&l
 async function entrarNoApp(){
   if(!sb){
     $("avisoConfig").classList.remove("hidden");
+    mostrar("authView");
     return;
   }
 
   try{
     const {data:{session},error}=await sb.auth.getSession();
-
     if(error)throw error;
 
     if(!session){
@@ -167,30 +167,79 @@ async function entrarNoApp(){
 
     usuarioAtual=session.user;
     $("sairBtn").classList.remove("hidden");
-
     await carregarPerfilEBebe();
 
   }catch(e){
     console.error("Erro ao entrar no app:",e);
-    alert("ERRO AO ABRIR O APP: "+erroAmigavel(e));
+    feedback("authFeedback",erroAmigavel(e),true);
     mostrar("authView");
   }
 }
-$("entrarTab").addEventListener("click",()=>{modoCriarConta=false;$("entrarTab").classList.add("active");$("criarTab").classList.remove("active");$("authSubmit").textContent="Entrar";$("senha").autocomplete="current-password";feedback("authFeedback","");});
-$("criarTab").addEventListener("click",()=>{modoCriarConta=true;$("criarTab").classList.add("active");$("entrarTab").classList.remove("active");$("authSubmit").textContent="Criar conta";$("senha").autocomplete="new-password";feedback("authFeedback","");});
-}else{
-  const {data,error}=await sb.auth.signInWithPassword({email,password});
 
-  if(error)throw error;
+$("entrarTab").addEventListener("click",()=>{
+  modoCriarConta=false;
+  $("entrarTab").classList.add("active");
+  $("criarTab").classList.remove("active");
+  $("authSubmit").textContent="Entrar";
+  $("senha").autocomplete="current-password";
+  feedback("authFeedback","");
+});
 
-  console.log("RESULTADO DO LOGIN:",data);
+$("criarTab").addEventListener("click",()=>{
+  modoCriarConta=true;
+  $("criarTab").classList.add("active");
+  $("entrarTab").classList.remove("active");
+  $("authSubmit").textContent="Criar conta";
+  $("senha").autocomplete="new-password";
+  feedback("authFeedback","");
+});
 
-  if(!data.session){
-    throw new Error("O login não criou uma sessão. Verifique a confirmação do e-mail.");
+$("authForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+
+  if(!sb){
+    $("avisoConfig").classList.remove("hidden");
+    return;
   }
 
-  await entrarNoApp();
-}
+  const email=$("email").value.trim();
+  const password=$("senha").value;
+
+  $("authSubmit").disabled=true;
+  feedback("authFeedback","Aguarde...");
+
+  try{
+    if(modoCriarConta){
+      const {data,error}=await sb.auth.signUp({email,password});
+      if(error)throw error;
+
+      if(data.session){
+        usuarioAtual=data.user;
+        $("sairBtn").classList.remove("hidden");
+        await carregarPerfilEBebe();
+      }else{
+        feedback("authFeedback","Conta criada! Confira seu e-mail para confirmar o cadastro e depois entre.");
+      }
+
+    }else{
+      const {data,error}=await sb.auth.signInWithPassword({email,password});
+      if(error)throw error;
+
+      if(!data.session){
+        throw new Error("O login não criou uma sessão. Verifique a confirmação do e-mail.");
+      }
+
+      await entrarNoApp();
+    }
+
+  }catch(err){
+    feedback("authFeedback",erroAmigavel(err),true);
+    console.error("Erro de autenticação:",err);
+
+  }finally{
+    $("authSubmit").disabled=false;
+  }
+});
 
 
 $("perfilForm").addEventListener("submit",async e=>{
