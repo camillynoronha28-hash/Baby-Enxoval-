@@ -146,12 +146,32 @@ function renderizarKits(){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 async function entrarNoApp(){
-  if(!sb){$("avisoConfig").classList.remove("hidden");return;}
-  const {data:{session}}=await sb.auth.getSession();
-  if(!session){mostrar("authView");return;}
-  usuarioAtual=session.user;
-  $("sairBtn").classList.remove("hidden");
-  try{await carregarPerfilEBebe();}catch(e){toast(erroAmigavel(e));console.error(e);}
+  if(!sb){
+    $("avisoConfig").classList.remove("hidden");
+    return;
+  }
+
+  try{
+    const {data:{session},error}=await sb.auth.getSession();
+
+    if(error)throw error;
+
+    if(!session){
+      feedback("authFeedback","Não foi encontrada uma sessão ativa.",true);
+      mostrar("authView");
+      return;
+    }
+
+    usuarioAtual=session.user;
+    $("sairBtn").classList.remove("hidden");
+
+    await carregarPerfilEBebe();
+
+  }catch(e){
+    console.error("Erro ao entrar no app:",e);
+    feedback("authFeedback","Erro ao abrir o app: "+erroAmigavel(e),true);
+    mostrar("authView");
+  }
 }
 $("entrarTab").addEventListener("click",()=>{modoCriarConta=false;$("entrarTab").classList.add("active");$("criarTab").classList.remove("active");$("authSubmit").textContent="Entrar";$("senha").autocomplete="current-password";feedback("authFeedback","");});
 $("criarTab").addEventListener("click",()=>{modoCriarConta=true;$("criarTab").classList.add("active");$("entrarTab").classList.remove("active");$("authSubmit").textContent="Criar conta";$("senha").autocomplete="new-password";feedback("authFeedback","");});
