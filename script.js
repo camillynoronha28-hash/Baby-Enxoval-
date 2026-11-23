@@ -172,7 +172,7 @@ async function entrarNoApp(){
 
   }catch(e){
     console.error("Erro ao entrar no app:",e);
-    feedback("authFeedback","Erro ao abrir o app: "+erroAmigavel(e),true);
+    alert("ERRO AO ABRIR O APP: "+erroAmigavel(e));
     mostrar("authView");
   }
 }
